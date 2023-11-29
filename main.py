@@ -34,6 +34,8 @@ import matplotlib.animation as animation
 import numpy as np
 from numpy.fft import fft
 from scipy.signal import butter, filtfilt
+from scipy.signal import welch
+from scipy.signal import spectrogram
 import matplotlib
 matplotlib.use('TkAgg')
 
@@ -41,7 +43,7 @@ matplotlib.use('TkAgg')
 ser = serial.Serial('COM3', 9600)
 
 # Create figure for plotting
-fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8))
+fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 12))
 # Create a new subplot for the FFT plots
 fig_FFT, (ax4, ax5) = plt.subplots(2, 1, figsize=(10, 12))
 # Create a new subplot for the FFT with High Pass filter plots
@@ -196,8 +198,8 @@ def save_FFT_data_to_csv():
 def save_FFT_HighPass_data_to_csv():
     fft_HighPass_df = pd.DataFrame({
         'Frequency': fft_freq_HighPass,
-        'FFT Raw EMG': fft_emgRaw_HighPass,
-        'FFT EMG': fft_emg_HighPass
+        'FFT Raw EMG High Pass filter': fft_emgRaw_HighPass,
+        'FFT EMG High Pass filter': fft_emg_HighPass
     })
     fft_HighPass_df.to_csv('emg_FFT_High_Pass_filter_data.csv', index=False)
     print("FFT data saved to emg_FFT_High_Pass_filter_data.csv")
@@ -229,3 +231,68 @@ ax7.set_title('FFT with High Pass Filter of EMG Value')
 plt.tight_layout()
 plt.show()
 
+# Ploting data after program stops
+
+# Load data from CSV
+df = pd.read_csv('emg_data.csv')
+emg_data = df['EMG'].values
+raw_emg_data = df['Raw EMG'].values
+
+# Define the sampling rate
+fs = 9600  # Replace this with the actual sampling rate
+
+
+# Calculate PSD for EMG data
+# Assuming data length is 141
+nperseg_value = len(emg_data)  # or any smaller value for higher frequency resolution
+
+f_emg, Pxx_emg = welch(emg_data, fs, nperseg=nperseg_value)
+f_raw_emg, Pxx_raw_emg = welch(raw_emg_data, fs, nperseg=nperseg_value)
+
+
+# Plot PSD
+plt.figure()
+plt.subplot(2, 1, 1)
+plt.semilogy(f_emg, Pxx_emg)
+plt.title('PSD of EMG Data')
+plt.xlabel('Frequency [Hz]')
+plt.ylabel('Power/Frequency [dB/Hz]')
+
+plt.subplot(2, 1, 2)
+plt.semilogy(f_raw_emg, Pxx_raw_emg)
+plt.title('PSD of Raw EMG Data')
+plt.xlabel('Frequency [Hz]')
+plt.ylabel('Power/Frequency [dB/Hz]')
+
+plt.tight_layout()
+plt.show()
+
+
+# Compute the spectrogram
+
+# Normalize the data
+emg_data_normalized = (emg_data - np.mean(emg_data)) / np.std(emg_data)
+raw_emg_data_normalized = (raw_emg_data - np.mean(raw_emg_data)) / np.std(raw_emg_data)
+
+f, t, Sxx_emg = spectrogram(emg_data, fs)
+f, t, Sxx_raw_emg = spectrogram(raw_emg_data, fs)
+
+# Plotting code
+plt.figure(figsize=(10, 8))
+plt.subplot(2, 1, 1)
+plt.pcolormesh(t, f, 10 * np.log10(Sxx_emg), shading='gouraud')
+plt.ylabel('Frequency [Hz]')
+plt.xlabel('Time [sec]')
+plt.title('Spectrogram of EMG Data')
+plt.colorbar(label='Intensity [dB]')
+
+plt.subplot(2, 1, 2)
+plt.pcolormesh(t, f, 10 * np.log10(Sxx_raw_emg), shading='gouraud')
+plt.ylabel('Frequency [Hz]')
+plt.xlabel('Time [sec]')
+plt.title('Spectrogram of Raw EMG Data')
+plt.colorbar(label='Intensity [dB]')
+
+plt.tight_layout()
+plt.show()
+plt.show()
