@@ -51,6 +51,14 @@ plot_line_emg_combined, = ax1.plot(data_emg, lw=2, label='EMG Value', color='red
 plot_line_emgRaw_separate, = ax2.plot(data_emgRaw, lw=2, label='EMG Raw Value', color='blue')
 plot_line_emg_separate, = ax3.plot(data_emg, lw=2, label='EMG Value', color='red')
 
+# Label the x and y axes
+ax1.set_xlabel('Time')
+ax1.set_ylabel('Amplitude')
+ax2.set_xlabel('Time')
+ax2.set_ylabel('Amplitude')
+ax3.set_xlabel('Time')
+ax3.set_ylabel('Amplitude')
+
 def update_line(num):
     if ser.in_waiting > 0:
         serial_line = ser.readline().decode('utf-8').rstrip()
