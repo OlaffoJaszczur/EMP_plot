@@ -44,7 +44,7 @@ ser = serial.Serial('COM3', 9600)
 fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8))
 # Create a new subplot for the FFT plots
 fig_FFT, (ax4, ax5) = plt.subplots(2, 1, figsize=(10, 12))
-# Create a new subplot for the FFT plots
+# Create a new subplot for the FFT with High Pass filter plots
 fig_FFT_HighPass, (ax6, ax7) = plt.subplots(2, 1, figsize=(10, 12))
 
 data_emgRaw = []  # List to store raw EMG data
@@ -53,8 +53,8 @@ data_emg = []     # List to store processed EMG data
 fft_emgRaw = []
 fft_emg = []
 # Initialize lists for FFT data with High Pass fiter
-fft_HighPass_emgRaw = []
-fft_HighPass_emg = []
+fft_emgRaw_HighPass = []
+fft_emg_HighPass = []
 
 # Plot lines for combined and separate plots
 plot_line_emgRaw_combined, = ax1.plot(data_emgRaw, lw=2, label='EMG Raw Value', color='blue')
@@ -66,6 +66,10 @@ plot_line_emg_separate, = ax3.plot(data_emg, lw=2, label='EMG Value', color='red
 # Plot lines for FFT plots
 plot_line_fft_emgRaw, = ax4.plot(fft_emgRaw, lw=2, label='FFT EMG Raw', color='green')
 plot_line_fft_emg, = ax5.plot(fft_emg, lw=2, label='FFT EMG', color='orange')
+
+# Plot lines for FFT with High Pass plots
+plot_line_fft_emgRaw_HighPass, = ax6.plot(fft_emgRaw_HighPass, lw=2, label='FFT High Pass EMG Raw', color='purple')
+plot_line_fft_emg_HighPass, = ax7.plot(fft_emg_HighPass, lw=2, label='FFT High Pass EMG', color='black')
 
 # Label the x and y axes
 ax1.set_xlabel('Time')
@@ -98,6 +102,7 @@ def highpass_filter(data, cutoff, fs, order=5):
     return y
 
 def update_line(num):
+    global data_emgRaw, data_emg
     if ser.in_waiting > 0:
         serial_line = ser.readline().decode('utf-8').rstrip()
         try:
@@ -128,26 +133,47 @@ def update_line_FFT(num):
     global fft_emgRaw, fft_emg, fft_freq  # Declare as global to modify
     if ser.in_waiting > 0:
         try:
-            # Apply high-pass filter
-            filtered_emgRaw = highpass_filter(data_emgRaw, 100, 9600)  # Replace 4800 with your actual sampling rate
-            filtered_emg = highpass_filter(data_emg, 100, 9600)
-            fft_freq = np.linspace(0, 9600 / 2, len(fft_emgRaw))  # Frequency axis
-
-            # Compute FFT for the filtered data
-            fft_emgRaw = np.abs(fft(filtered_emgRaw))[:len(filtered_emgRaw) // 2]
-            fft_emg = np.abs(fft(filtered_emg))[:len(filtered_emg) // 2]
+            # Compute FFT for both sets of data and update the plots
+            fft_emgRaw = np.abs(fft(data_emgRaw))[:len(data_emgRaw) // 2]  # Compute and plot only half (positive frequencies)
+            fft_emg = np.abs(fft(data_emg))[:len(data_emg) // 2]
+            fft_freq = np.linspace(0, 9600 / 2, len(fft_emgRaw_HighPass))  # Frequency axis
 
             plot_line_fft_emgRaw.set_ydata(fft_emgRaw)
-            plot_line_fft_emgRaw.set_xdata(
-                np.linspace(0, 4800, len(fft_emgRaw)))  # Replace 4800 with half your sampling rate
+            plot_line_fft_emgRaw.set_xdata(np.linspace(0, 9600, len(fft_emgRaw)))  # Replace 4800 with half your sampling rate
 
             plot_line_fft_emg.set_ydata(fft_emg)
-            plot_line_fft_emg.set_xdata(np.linspace(0, 4800, len(fft_emg)))
+            plot_line_fft_emg.set_xdata(np.linspace(0, 9600, len(fft_emg)))
 
             ax4.relim()
             ax4.autoscale_view()
             ax5.relim()
             ax5.autoscale_view()
+        except ValueError:
+            print(f"Error in data conversion:")
+
+def update_line_FFT_HighPass(num):
+    global fft_emgRaw_HighPass, fft_emg_HighPass, fft_freq_HighPass  # Declare as global to modify
+    if ser.in_waiting > 0:
+        try:
+            # Apply high-pass filter
+            filtered_emgRaw = highpass_filter(data_emgRaw, 100, 9600)  # sampling rate = 9600
+            filtered_emg = highpass_filter(data_emg, 100, 9600)
+            fft_freq_HighPass = np.linspace(0, 9600 / 2, len(fft_emgRaw_HighPass))  # Frequency axis
+
+            # Compute FFT for the filtered data
+            fft_emgRaw_HighPass = np.abs(fft(filtered_emgRaw))[:len(filtered_emgRaw) // 2]
+            fft_emg_HighPass = np.abs(fft(filtered_emg))[:len(filtered_emg) // 2]
+
+            plot_line_fft_emgRaw_HighPass.set_ydata(fft_emgRaw_HighPass)
+            plot_line_fft_emgRaw_HighPass.set_xdata(np.linspace(0, 9600, len(fft_emgRaw_HighPass)))
+
+            plot_line_fft_emg_HighPass.set_ydata(fft_emg_HighPass)
+            plot_line_fft_emg_HighPass.set_xdata(np.linspace(0, 9600, len(fft_emg_HighPass)))
+
+            ax6.relim()
+            ax6.autoscale_view()
+            ax7.relim()
+            ax7.autoscale_view()
         except ValueError:
             print(f"Error in data conversion:")
 
@@ -167,12 +193,22 @@ def save_FFT_data_to_csv():
     })
     fft_df.to_csv('emg_FFT_data.csv', index=False)
     print("FFT data saved to emg_FFT_data.csv")
+def save_FFT_HighPass_data_to_csv():
+    fft_HighPass_df = pd.DataFrame({
+        'Frequency': fft_freq_HighPass,
+        'FFT Raw EMG': fft_emgRaw_HighPass,
+        'FFT EMG': fft_emg_HighPass
+    })
+    fft_HighPass_df.to_csv('emg_FFT_High_Pass_filter_data.csv', index=False)
+    print("FFT data saved to emg_FFT_High_Pass_filter_data.csv")
 
 atexit.register(save_data_to_csv)
 atexit.register(save_FFT_data_to_csv)
+atexit.register(save_FFT_HighPass_data_to_csv)
 
 ani1 = animation.FuncAnimation(fig, update_line, interval=100, cache_frame_data=False)
 ani2 = animation.FuncAnimation(fig_FFT, update_line_FFT, interval=100, cache_frame_data=False)
+ani3 = animation.FuncAnimation(fig_FFT_HighPass, update_line_FFT_HighPass, interval=100, cache_frame_data=False)
 
 ax1.legend()
 ax2.legend()
