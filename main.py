@@ -149,7 +149,7 @@ def update_line_FFT(num):
             ax5.relim()
             ax5.autoscale_view()
         except ValueError:
-            print(f"Error in data conversion:")
+            print(f"Error in data conversion FFT")
 
 def update_line_FFT_HighPass(num):
     global fft_emgRaw_HighPass, fft_emg_HighPass, fft_freq_HighPass  # Declare as global to modify
@@ -175,7 +175,7 @@ def update_line_FFT_HighPass(num):
             ax7.relim()
             ax7.autoscale_view()
         except ValueError:
-            print(f"Error in data conversion:")
+            print(f"Error in data conversion FFT High Pass filter")
 
 
 # Register a function to save data before exiting
