@@ -49,8 +49,9 @@ fig_FFT, (ax4, ax5) = plt.subplots(2, 1, figsize=(10, 12))
 # Create a new subplot for the FFT with High Pass filter plots
 fig_FFT_HighPass, (ax6, ax7) = plt.subplots(2, 1, figsize=(10, 12))
 
-data_emgRaw = []  # List to store raw EMG data
-data_emg = []     # List to store processed EMG data
+# Initialize list to store raw EMG and EMG data
+data_emgRaw = []
+data_emg = []
 # Initialize lists for FFT data
 fft_emgRaw = []
 fft_emg = []
@@ -141,10 +142,10 @@ def update_line_FFT(num):
             fft_freq = np.linspace(0, 9600 / 2, len(fft_emgRaw_HighPass))  # Frequency axis
 
             plot_line_fft_emgRaw.set_ydata(fft_emgRaw)
-            plot_line_fft_emgRaw.set_xdata(np.linspace(0, 9600, len(fft_emgRaw)))  # Replace 4800 with half your sampling rate
+            plot_line_fft_emgRaw.set_xdata(np.linspace(0, 4800, len(fft_emgRaw)))  # Replace 4800 with half your sampling rate
 
             plot_line_fft_emg.set_ydata(fft_emg)
-            plot_line_fft_emg.set_xdata(np.linspace(0, 9600, len(fft_emg)))
+            plot_line_fft_emg.set_xdata(np.linspace(0, 4800, len(fft_emg)))
 
             ax4.relim()
             ax4.autoscale_view()
@@ -158,19 +159,19 @@ def update_line_FFT_HighPass(num):
     if ser.in_waiting > 0:
         try:
             # Apply high-pass filter
-            filtered_emgRaw = highpass_filter(data_emgRaw, 100, 9600)  # sampling rate = 9600
-            filtered_emg = highpass_filter(data_emg, 100, 9600)
-            fft_freq_HighPass = np.linspace(0, 9600 / 2, len(fft_emgRaw_HighPass))  # Frequency axis
+            filtered_emgRaw = highpass_filter(data_emgRaw, 100, 4800)  # sampling rate = 9600
+            filtered_emg = highpass_filter(data_emg, 100, 4800)
+            fft_freq_HighPass = np.linspace(0, 4800 / 2, len(fft_emgRaw_HighPass))  # Frequency axis
 
             # Compute FFT for the filtered data
             fft_emgRaw_HighPass = np.abs(fft(filtered_emgRaw))[:len(filtered_emgRaw) // 2]
             fft_emg_HighPass = np.abs(fft(filtered_emg))[:len(filtered_emg) // 2]
 
             plot_line_fft_emgRaw_HighPass.set_ydata(fft_emgRaw_HighPass)
-            plot_line_fft_emgRaw_HighPass.set_xdata(np.linspace(0, 9600, len(fft_emgRaw_HighPass)))
+            plot_line_fft_emgRaw_HighPass.set_xdata(np.linspace(0, 4800, len(fft_emgRaw_HighPass)))
 
             plot_line_fft_emg_HighPass.set_ydata(fft_emg_HighPass)
-            plot_line_fft_emg_HighPass.set_xdata(np.linspace(0, 9600, len(fft_emg_HighPass)))
+            plot_line_fft_emg_HighPass.set_xdata(np.linspace(0, 4800, len(fft_emg_HighPass)))
 
             ax6.relim()
             ax6.autoscale_view()
@@ -231,6 +232,7 @@ ax7.set_title('FFT with High Pass Filter of EMG Value')
 plt.tight_layout()
 plt.show()
 
+
 # Ploting data after program stops
 
 # Load data from CSV
@@ -243,8 +245,7 @@ fs = 9600  # Replace this with the actual sampling rate
 
 
 # Calculate PSD for EMG data
-# Assuming data length is 141
-nperseg_value = len(emg_data)  # or any smaller value for higher frequency resolution
+nperseg_value = len(emg_data)
 
 f_emg, Pxx_emg = welch(emg_data, fs, nperseg=nperseg_value)
 f_raw_emg, Pxx_raw_emg = welch(raw_emg_data, fs, nperseg=nperseg_value)
@@ -269,7 +270,6 @@ plt.show()
 
 
 # Compute the spectrogram
-
 # Normalize the data
 emg_data_normalized = (emg_data - np.mean(emg_data)) / np.std(emg_data)
 raw_emg_data_normalized = (raw_emg_data - np.mean(raw_emg_data)) / np.std(raw_emg_data)
